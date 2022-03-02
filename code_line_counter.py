@@ -8,6 +8,7 @@
 @CreatedOn  : 2022/3/1 16:18
 ------------------------------------------
 """
+from argparse import ArgumentParser
 
 from os import listdir
 from os.path import isdir, splitext, join as path_join
@@ -84,7 +85,7 @@ def worker(root_dir: str, include_blank_line: bool = True):
     res = list_paths(root_dir, depth=depth, suffix=suffix)
     result = []
     for i in res:
-        result.append([i, line_count(i)])
+        result.append([i, line_count(i, include_blank_line)])
 
     # 按照内容行数从大到小排序
     sorted(result, key=lambda x: x[-1], reverse=True)
@@ -96,6 +97,22 @@ def worker(root_dir: str, include_blank_line: bool = True):
         print(content)
 
     print(f"\nFiles: {len(result)} | lines: {line_counter}")
+
+
+def cli_parser(desc: str) -> str or list:
+    """ 解析命令行命令 """
+    parser = ArgumentParser(description=desc)
+    parser.add_argument('-f', dest='file_path', help="SO文件路径")
+    parser.add_argument('-n', dest='sos', action='append', help='要下载的SO号，可以写多个，空格分隔')
+
+    args = parser.parse_args()
+    file_path = args.file_path
+    sos = args.sos
+
+    if file_path and sos:
+        raise ValueError("'-f' 和 '-n' 不能同时使用")
+
+    return file_path or sos
 
 
 def main():
