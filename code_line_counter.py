@@ -74,7 +74,7 @@ def line_count(file_path, include_blank_line=True) -> int:
         return len(content2)
 
 
-def worker(root_dir: str, include_blank_line: bool = True):
+def worker(root_dir: str, include_blank_line: bool = True, exclude_str=None):
     """
         root_dir:               项目根目录
         include_blank_line:     将空行统计在内，默认包括
@@ -84,8 +84,15 @@ def worker(root_dir: str, include_blank_line: bool = True):
 
     res = list_paths(root_dir, depth=depth, suffix=suffix)
     result = []
-    for i in res:
-        result.append([i, line_count(i, include_blank_line)])
+
+    if exclude_str:
+        for i in res:  # 如果路径中存在所给的需要忽略的字符串，则跳过
+            if exist_special_str(i, exclude_str):
+                continue
+            result.append([i, line_count(i, include_blank_line)])
+    else:
+        for i in res:
+            result.append([i, line_count(i, include_blank_line)])
 
     # 按照内容行数从大到小排序
     sorted(result, key=lambda x: x[-1], reverse=True)
@@ -99,25 +106,37 @@ def worker(root_dir: str, include_blank_line: bool = True):
     print(f"\nFiles: {len(result)} | lines: {line_counter}")
 
 
-def cli_parser(desc: str) -> str or list:
+def exist_special_str(content: list, special_strs: list = None) -> bool:
+    """
+        检测 content中是否包含 special_strs中的任意一个字符串
+    """
+    if not special_strs:
+        return False
+
+    for i in special_strs:
+        if i in content:
+            return True
+
+    return False
+
+
+def cli_parser(desc_content: str) -> str or list:
     """ 解析命令行命令 """
-    parser = ArgumentParser(description=desc)
-    parser.add_argument('-f', dest='file_path', help="SO文件路径")
-    parser.add_argument('-n', dest='sos', action='append', help='要下载的SO号，可以写多个，空格分隔')
-
+    parser = ArgumentParser(description=desc_content)
+    parser.add_argument('-d', dest='dir_path', help="项目根目录", required=True)
     args = parser.parse_args()
-    file_path = args.file_path
-    sos = args.sos
 
-    if file_path and sos:
-        raise ValueError("'-f' 和 '-n' 不能同时使用")
-
-    return file_path or sos
+    return args.dir_path
 
 
 def main():
-    root_dir = r'E:\Code\localCode\ETL'
-    worker(root_dir)
+    # 忽略包含以下字符的路径
+    exclude_dir_str = [
+        "PIPENV_VENV_IN_PROJECT"
+    ]
+
+    desc = "统计项目中.py代码行数"
+    worker(cli_parser(desc), exclude_str=exclude_dir_str)
 
 
 if __name__ == "__main__":
